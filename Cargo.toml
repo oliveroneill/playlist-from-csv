@@ -1,0 +1,8 @@
+[package]
+name = "playlist-from-csv"
+version = "0.1.0"
+authors = ["Oliver O'Neill"]
+
+[dependencies]
+rspotify = "0.2.3"
+failure = "0.1"
