@@ -16,7 +16,7 @@ fn main() {
         .redirect_uri("http://localhost:8888/callback")
         .build();
     let username = "<ENTER-USERNAME-HERE>";
-    let playlist_name = "wedding";
+    let playlist_name = "<ENTER-PLAYLIST-NAME>";
     // Log in with username
     let spotify = SpotifyAPI::new(username, &mut oauth).unwrap();
     // Get playlist ID from playlist name
