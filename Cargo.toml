@@ -6,3 +6,4 @@ authors = ["Oliver O'Neill"]
 [dependencies]
 rspotify = "0.2.3"
 failure = "0.1"
+argparse = "0.2.1"
