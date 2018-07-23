@@ -41,7 +41,7 @@ fn main() {
     }
     // Set up Spotify OAuth
     let mut oauth = SpotifyOAuth::default()
-        .scope("playlist-modify-private")
+        .scope("playlist-read-private playlist-modify-private")
         .client_id(&client_id)
         .client_secret(&client_secret)
         .redirect_uri("http://localhost:8888/callback")
