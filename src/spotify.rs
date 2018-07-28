@@ -73,4 +73,9 @@ impl PlaylistAPI<failure::Error> for SpotifyAPI {
         let playlist = self.spotify.user_playlist_create(&self.username, playlist_name, false, None)?;
         Ok(playlist.id)
     }
+
+    fn add_tracks_to_playlist(&self, playlist_id: &str, track_ids: &[String]) -> Result<(), failure::Error> {
+        self.spotify.user_playlist_add_tracks(&self.username, playlist_id, &track_ids, None)?;
+        Ok(())
+    }
 }

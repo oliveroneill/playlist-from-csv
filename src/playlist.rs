@@ -15,6 +15,13 @@ pub trait PlaylistAPI<E> {
     ///
     /// * `playlist_name` - A string slice that holds the playlist name
     fn create_playlist(&self, playlist_name: &str) -> Result<String, E>;
+    /// Add tracks to a playlist with a given ID
+    ///
+    /// # Arguments
+    ///
+    /// * `playlist_id` - A string slice that holds the playlist ID
+    /// * `track_ids` - A vectors of strings with tracks IDs to add to playlist
+    fn add_tracks_to_playlist(&self, playlist_id: &str, track_ids: &[String]) -> Result<(), E>;
 }
 
 /// Playlist enum for different playlist errors
@@ -73,6 +80,7 @@ mod tests {
     struct CallHistory {
         create_playlist_called_with: Option<String>,
         get_playlist_id_called_with: Option<String>,
+        add_tracks_to_playlist_called_with: Option<String>,
     }
 
     #[derive(Debug, Copy, Clone, PartialEq)]
@@ -94,6 +102,7 @@ mod tests {
                     CallHistory{
                         create_playlist_called_with: None,
                         get_playlist_id_called_with: None,
+                        add_tracks_to_playlist_called_with: None,
                     }
                 ),
                 get_playlist_id_returns: get_playlist_id_returns,
@@ -111,6 +120,12 @@ mod tests {
         fn create_playlist(&self, playlist_name: &str) -> Result<String, FakeError> {
             self.call_history.borrow_mut().create_playlist_called_with = Some(playlist_name.to_owned());
             self.create_playlist_returns.clone()
+        }
+
+        #[allow(unused_variables)]
+        fn add_tracks_to_playlist(&self, playlist_id: &str, track_ids: &[String]) -> Result<(), FakeError> {
+            self.call_history.borrow_mut().add_tracks_to_playlist_called_with = Some(playlist_id.to_owned());
+            Ok(())
         }
     }
 
@@ -131,6 +146,8 @@ mod tests {
         assert_eq!(Some(playlist_name.to_owned()), api.call_history.borrow().get_playlist_id_called_with);
         // Ensure that the create call is not made
         assert_eq!(None, api.call_history.borrow().create_playlist_called_with);
+        // Ensure irrelevant function is not called
+        assert_eq!(None, api.call_history.borrow().add_tracks_to_playlist_called_with);
     }
 
     #[test]
@@ -152,6 +169,8 @@ mod tests {
         assert_eq!(Some(playlist_name.to_owned()), api.call_history.borrow().get_playlist_id_called_with);
         // Ensure that the create call is made since the playlist was not found
         assert_eq!(Some(playlist_name.to_owned()), api.call_history.borrow().create_playlist_called_with);
+        // Ensure irrelevant function is not called
+        assert_eq!(None, api.call_history.borrow().add_tracks_to_playlist_called_with);
     }
 
     #[test]
@@ -176,9 +195,11 @@ mod tests {
         assert_eq!(Some(playlist_name.to_owned()), api.call_history.borrow().get_playlist_id_called_with);
         // Ensure that we do not create a playlist since an error occurred
         assert_eq!(None, api.call_history.borrow().create_playlist_called_with);
+        // Ensure irrelevant function is not called
+        assert_eq!(None, api.call_history.borrow().add_tracks_to_playlist_called_with);
     }
 
-        #[test]
+    #[test]
     fn get_playlist_id_fails_on_create() {
         // Given
         let playlist_name = "test_playlist_name1";
@@ -198,5 +219,7 @@ mod tests {
         };
         assert_eq!(Some(playlist_name.to_owned()), api.call_history.borrow().get_playlist_id_called_with);
         assert_eq!(Some(playlist_name.to_owned()), api.call_history.borrow().create_playlist_called_with);
+        // Ensure irrelevant function is not called
+        assert_eq!(None, api.call_history.borrow().add_tracks_to_playlist_called_with);
     }
 }
