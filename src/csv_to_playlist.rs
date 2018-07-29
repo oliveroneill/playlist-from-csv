@@ -75,7 +75,6 @@ pub fn filter_duplicates<E>(playlist_api: &PlaylistAPI<E>,
                             playlist_id: &str,
                             track_ids: Vec<String>) -> Result<Vec<String>, E> {
     let tracks = playlist_api.get_track_ids_in_playlist(playlist_id)?;
-    // TODO: what about duplicates in the already existing list?
     let filtered: Vec<String> = track_ids
         .iter()
         .filter(|id| !tracks.contains(id))
