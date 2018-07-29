@@ -7,7 +7,7 @@ use std::fs::File;
 
 /// A struct containing relevant spotify information for playlist tracks.
 /// This is specifically used for a DynamoDB export to CSV
-#[derive(Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize)]
 pub struct Song {
     /// A human readable name of the song
     #[serde(rename = "music (S)")]
@@ -53,7 +53,11 @@ pub fn add_songs_to_playlist<E>(playlist_api: &PlaylistAPI<E>,
                                 songs: Vec<Song>) -> Result<(), E> {
     // Map the songs to IDs
     let track_ids: Vec<String> = songs.iter().map(get_track_id_from_song).collect();
-    let filtered = filter_duplicates(playlist_api, playlist_id, track_ids)?;
+    let mut filtered = filter_duplicates(playlist_api, playlist_id, track_ids)?;
+    // Sort so that dedup removes all duplicates
+    filtered.sort();
+    // Remove all duplicates
+    filtered.dedup();
     // Add the IDs to the playlist
     playlist_api.add_tracks_to_playlist(playlist_id, &filtered[..])?;
     Ok(())
@@ -159,7 +163,10 @@ mod tests {
     /// Used for declaring the inputs for each test
     fn test_setup() -> (String, [String; 3], Vec<Song>) {
         let playlist_name = "test_playlist_name1".to_string();
-        let expected_tracks = ["3ndjkfd9".to_string(), "vvcs33".to_string(), "asqww_nf".to_string()];
+        // These must be in alphabetical order to make the tests simpler.
+        // This is because add_songs_to_playlist performs a sort that changes
+        // the order that tracks are added
+        let expected_tracks = ["3ndjkfd9".to_string(), "asqww_nf".to_string(), "vvcs33".to_string()];
         // Create some songs to add
         let mut songs = Vec::new();
         songs.push(Song{music:"BLA".to_string(), song_id:expected_tracks[0].to_owned()});
@@ -217,7 +224,7 @@ mod tests {
     }
 
     #[test]
-    fn add_songs_to_playlist_filters_duplicates() {
+    fn add_songs_to_playlist_filters_songs_already_in_playlist() {
         // Given
         let (playlist_name, adding_tracks, songs) = test_setup();
         // Two of the tracks are duplicates
@@ -264,6 +271,30 @@ mod tests {
         assert_eq!(expected_track_id_call, calls.get_track_ids_in_playlist_called_with);
         // Ensure that we do not attempt to add when the earlier API call failed
         assert_eq!(None, calls.add_tracks_to_playlist_called_with);
+        // Ensure irrelevant function is not called
+        assert_eq!(None, calls.create_playlist_called_with);
+        assert_eq!(None, calls.get_playlist_id_called_with);
+    }
+
+    #[test]
+    fn add_songs_to_playlist_filters_duplicates() {
+        // Given
+        let (playlist_name, expected_tracks, mut songs) = test_setup();
+        // Duplicate the second element
+        let dupe = songs[1].clone();
+        songs.push(dupe);
+        let api = MockPlaylistAPI::new(Ok(()), Ok(Vec::new()));
+        // When
+        // Ensure it doesn't fail using unwrap
+        add_songs_to_playlist(&api, &playlist_name, songs).unwrap();
+        // Then
+        let expected = Some((playlist_name.to_string(), expected_tracks.to_vec()));
+        let expected_track_id_call = Some(playlist_name.to_string());
+        // Check the call history
+        let calls = api.call_history.borrow();
+        // Ensure that API was called correctly
+        assert_eq!(expected, calls.add_tracks_to_playlist_called_with);
+        assert_eq!(expected_track_id_call, calls.get_track_ids_in_playlist_called_with);
         // Ensure irrelevant function is not called
         assert_eq!(None, calls.create_playlist_called_with);
         assert_eq!(None, calls.get_playlist_id_called_with);
