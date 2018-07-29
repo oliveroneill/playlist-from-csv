@@ -41,7 +41,8 @@ impl SpotifyAPI {
     ///
     /// * `username` - A string slice that holds the username
     /// * `spotify_oauth` - A setup OAuth struct
-    pub fn new(username: &str, mut spotify_oauth: &mut SpotifyOAuth) -> Result<SpotifyAPI, AuthenticationFailed> {
+    pub fn new(username: &str,
+               mut spotify_oauth: &mut SpotifyOAuth) -> Result<SpotifyAPI, AuthenticationFailed> {
         match get_token(&mut spotify_oauth) {
             Some(token_info) => {
                 let client_credential = SpotifyClientCredentials::default()
@@ -58,8 +59,10 @@ impl SpotifyAPI {
 }
 
 impl PlaylistAPI<failure::Error> for SpotifyAPI {
-    fn get_playlist_id(&self, playlist_name: &str) -> Result<String, PlaylistError<failure::Error>> {
-        let playlist_page = self.spotify.current_user_playlists(None, None).map_err(PlaylistError::APIError)?;
+    fn get_playlist_id(&self,
+                       playlist_name: &str) -> Result<String, PlaylistError<failure::Error>> {
+        let result = self.spotify.current_user_playlists(None, None);
+        let playlist_page = result.map_err(PlaylistError::APIError)?;
         // Find the first playlist with the matching name
         for p in playlist_page.items {
             if p.name == playlist_name {
@@ -70,18 +73,39 @@ impl PlaylistAPI<failure::Error> for SpotifyAPI {
         Err(PlaylistError::PlaylistNotFound(PlaylistNotFound{}))
     }
 
-    fn create_playlist(&self, playlist_name: &str) -> Result<String, failure::Error> {
-        let playlist = self.spotify.user_playlist_create(&self.username, playlist_name, false, None)?;
+    fn create_playlist(&self,
+                       playlist_name: &str) -> Result<String, failure::Error> {
+        let playlist = self.spotify.user_playlist_create(
+            &self.username,
+            playlist_name,
+            false,
+            None
+        )?;
         Ok(playlist.id)
     }
 
-    fn add_tracks_to_playlist(&self, playlist_id: &str, track_ids: &[String]) -> Result<(), failure::Error> {
-        self.spotify.user_playlist_add_tracks(&self.username, playlist_id, &track_ids, None)?;
+    fn add_tracks_to_playlist(&self,
+                              playlist_id: &str,
+                              track_ids: &[String]) -> Result<(), failure::Error> {
+        self.spotify.user_playlist_add_tracks(
+            &self.username,
+            playlist_id,
+            &track_ids,
+            None
+        )?;
         Ok(())
     }
 
-    fn get_track_ids_in_playlist(&self, playlist_id: &str) -> Result<Vec<String>, failure::Error> {
-        let results = self.spotify.user_playlist_tracks(&self.username, playlist_id, None, None, None, None)?;
+    fn get_track_ids_in_playlist(&self,
+                                 playlist_id: &str) -> Result<Vec<String>, failure::Error> {
+        let results = self.spotify.user_playlist_tracks(
+            &self.username,
+            playlist_id,
+            None,
+            None,
+            None,
+            None
+        )?;
         Ok(get_track_ids(results.items))
     }
 }

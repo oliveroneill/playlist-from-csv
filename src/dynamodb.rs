@@ -48,7 +48,9 @@ fn get_track_id_from_song(song: &Song) -> String {
 /// * `playlist_id` - The playlist ID to be added to. This is the ID and *not*
 ///                   the name.
 /// * `songs` - A vec of the songs
-pub fn add_songs_to_playlist<E>(playlist_api: &PlaylistAPI<E>, playlist_id: &str, songs: Vec<Song>) -> Result<(), E> {
+pub fn add_songs_to_playlist<E>(playlist_api: &PlaylistAPI<E>,
+                                playlist_id: &str,
+                                songs: Vec<Song>) -> Result<(), E> {
     // Map the songs to IDs
     let track_ids: Vec<String> = songs.iter().map(get_track_id_from_song).collect();
     let filtered = filter_duplicates(playlist_api, playlist_id, track_ids)?;
@@ -65,7 +67,9 @@ pub fn add_songs_to_playlist<E>(playlist_api: &PlaylistAPI<E>, playlist_id: &str
 /// * `playlist_id` - The playlist ID to be added to. This is the ID and *not*
 ///                   the name.
 /// * `track_ids` - A vec of IDs for each song
-pub fn filter_duplicates<E>(playlist_api: &PlaylistAPI<E>, playlist_id: &str, track_ids: Vec<String>) -> Result<Vec<String>, E> {
+pub fn filter_duplicates<E>(playlist_api: &PlaylistAPI<E>,
+                            playlist_id: &str,
+                            track_ids: Vec<String>) -> Result<Vec<String>, E> {
     let tracks = playlist_api.get_track_ids_in_playlist(playlist_id)?;
     // TODO: what about duplicates in the already existing list?
     let filtered: Vec<String> = track_ids
@@ -124,12 +128,14 @@ mod tests {
 
     impl PlaylistAPI<FakeError> for MockPlaylistAPI {
         fn get_playlist_id(&self, playlist_name: &str) -> Result<String, PlaylistError<FakeError>> {
-            self.call_history.borrow_mut().get_playlist_id_called_with = Some(playlist_name.to_owned());
+            let mut calls = self.call_history.borrow_mut();
+            calls.get_playlist_id_called_with = Some(playlist_name.to_owned());
             Ok("".to_string())
         }
 
         fn create_playlist(&self, playlist_name: &str) -> Result<String, FakeError> {
-            self.call_history.borrow_mut().create_playlist_called_with = Some(playlist_name.to_owned());
+            let mut calls = self.call_history.borrow_mut();
+            calls.create_playlist_called_with = Some(playlist_name.to_owned());
             Ok("".to_string())
         }
 
@@ -137,13 +143,15 @@ mod tests {
         fn add_tracks_to_playlist(&self, playlist_id: &str, track_ids: &[String]) -> Result<(), FakeError> {
             let mut x = vec!["".to_string(); track_ids.len()];
             x.clone_from_slice(track_ids);
-            self.call_history.borrow_mut().add_tracks_to_playlist_called_with = Some((playlist_id.to_owned(), x));
+            let mut calls = self.call_history.borrow_mut();
+            calls.add_tracks_to_playlist_called_with = Some((playlist_id.to_owned(), x));
             self.add_tracks_to_playlist_returns.clone()
         }
 
         #[allow(unused_variables)]
         fn get_track_ids_in_playlist(&self, playlist_id: &str) -> Result<Vec<String>, FakeError> {
-            self.call_history.borrow_mut().get_track_ids_in_playlist_called_with = Some(playlist_id.to_owned());
+            let mut calls = self.call_history.borrow_mut();
+            calls.get_track_ids_in_playlist_called_with = Some(playlist_id.to_owned());
             self.get_track_ids_in_playlist_returns.clone()
         }
     }
@@ -166,12 +174,13 @@ mod tests {
         let expected = Some((playlist_name.to_string(), expected_tracks.to_vec()));
         let expected_track_id_call = Some(playlist_name.to_string());
         // Check the call history
+        let calls = api.call_history.borrow();
         // Ensure that API was called correctly
-        assert_eq!(expected, api.call_history.borrow().add_tracks_to_playlist_called_with);
-        assert_eq!(expected_track_id_call, api.call_history.borrow().get_track_ids_in_playlist_called_with);
+        assert_eq!(expected, calls.add_tracks_to_playlist_called_with);
+        assert_eq!(expected_track_id_call, calls.get_track_ids_in_playlist_called_with);
         // Ensure irrelevant function is not called
-        assert_eq!(None, api.call_history.borrow().create_playlist_called_with);
-        assert_eq!(None, api.call_history.borrow().get_playlist_id_called_with);
+        assert_eq!(None, calls.create_playlist_called_with);
+        assert_eq!(None, calls.get_playlist_id_called_with);
     }
 
     #[test]
@@ -195,14 +204,15 @@ mod tests {
             Err(err) => assert_eq!(error, err),
         };
         // Check the call history
+        let calls = api.call_history.borrow();
         let expected = Some((playlist_name.to_string(), expected_tracks.to_vec()));
         let expected_track_id_call = Some(playlist_name.to_string());
         // Ensure that API was called correctly
-        assert_eq!(expected, api.call_history.borrow().add_tracks_to_playlist_called_with);
-        assert_eq!(expected_track_id_call, api.call_history.borrow().get_track_ids_in_playlist_called_with);
+        assert_eq!(expected, calls.add_tracks_to_playlist_called_with);
+        assert_eq!(expected_track_id_call, calls.get_track_ids_in_playlist_called_with);
         // Ensure irrelevant function is not called
-        assert_eq!(None, api.call_history.borrow().create_playlist_called_with);
-        assert_eq!(None, api.call_history.borrow().get_playlist_id_called_with);
+        assert_eq!(None, calls.create_playlist_called_with);
+        assert_eq!(None, calls.get_playlist_id_called_with);
     }
 
     #[test]
@@ -228,12 +238,13 @@ mod tests {
         let expected = Some((playlist_name.to_string(), expected_tracks.to_vec()));
         let expected_track_id_call = Some(playlist_name.to_string());
         // Check the call history
+        let calls = api.call_history.borrow();
         // Ensure that API was called correctly
-        assert_eq!(expected, api.call_history.borrow().add_tracks_to_playlist_called_with);
-        assert_eq!(expected_track_id_call, api.call_history.borrow().get_track_ids_in_playlist_called_with);
+        assert_eq!(expected, calls.add_tracks_to_playlist_called_with);
+        assert_eq!(expected_track_id_call, calls.get_track_ids_in_playlist_called_with);
         // Ensure irrelevant function is not called
-        assert_eq!(None, api.call_history.borrow().create_playlist_called_with);
-        assert_eq!(None, api.call_history.borrow().get_playlist_id_called_with);
+        assert_eq!(None, calls.create_playlist_called_with);
+        assert_eq!(None, calls.get_playlist_id_called_with);
     }
 
     #[test]
@@ -258,13 +269,14 @@ mod tests {
             Err(err) => assert_eq!(error, err),
         };
         // Check the call history
+        let calls = api.call_history.borrow();
         let expected_track_id_call = Some(playlist_name.to_string());
         // Ensure that API was called correctly
-        assert_eq!(expected_track_id_call, api.call_history.borrow().get_track_ids_in_playlist_called_with);
+        assert_eq!(expected_track_id_call, calls.get_track_ids_in_playlist_called_with);
         // Ensure that we do not attempt to add when the earlier API call failed
-        assert_eq!(None, api.call_history.borrow().add_tracks_to_playlist_called_with);
+        assert_eq!(None, calls.add_tracks_to_playlist_called_with);
         // Ensure irrelevant function is not called
-        assert_eq!(None, api.call_history.borrow().create_playlist_called_with);
-        assert_eq!(None, api.call_history.borrow().get_playlist_id_called_with);
+        assert_eq!(None, calls.create_playlist_called_with);
+        assert_eq!(None, calls.get_playlist_id_called_with);
     }
 }
