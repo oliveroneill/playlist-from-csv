@@ -8,6 +8,7 @@ extern crate rspotify;
 use rspotify::spotify::client::Spotify;
 use rspotify::spotify::util::get_token;
 use rspotify::spotify::oauth2::{SpotifyClientCredentials,SpotifyOAuth};
+use rspotify::spotify::model::playlist::PlaylistTrack;
 
 extern crate failure;
 
@@ -78,4 +79,14 @@ impl PlaylistAPI<failure::Error> for SpotifyAPI {
         self.spotify.user_playlist_add_tracks(&self.username, playlist_id, &track_ids, None)?;
         Ok(())
     }
+
+    fn get_track_ids_in_playlist(&self, playlist_id: &str) -> Result<Vec<String>, failure::Error> {
+        let results = self.spotify.user_playlist_tracks(&self.username, playlist_id, None, None, None, None)?;
+        Ok(get_track_ids(results.items))
+    }
+}
+
+/// Converts playlist track into just the IDs
+fn get_track_ids(result: Vec<PlaylistTrack>) -> Vec<String> {
+    result.iter().map(|x| x.clone().track.id).collect()
 }

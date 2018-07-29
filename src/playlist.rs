@@ -22,6 +22,12 @@ pub trait PlaylistAPI<E> {
     /// * `playlist_id` - A string slice that holds the playlist ID
     /// * `track_ids` - A vectors of strings with tracks IDs to add to playlist
     fn add_tracks_to_playlist(&self, playlist_id: &str, track_ids: &[String]) -> Result<(), E>;
+    /// Get track IDs in the specified playlist
+    ///
+    /// # Arguments
+    ///
+    /// * `playlist_id` - A string slice that holds the playlist ID
+    fn get_track_ids_in_playlist(&self, playlist_id: &str) -> Result<Vec<String>, E>;
 }
 
 /// Playlist enum for different playlist errors
@@ -81,6 +87,7 @@ mod tests {
         create_playlist_called_with: Option<String>,
         get_playlist_id_called_with: Option<String>,
         add_tracks_to_playlist_called_with: Option<String>,
+        get_track_ids_in_playlist_called_with: Option<String>,
     }
 
     #[derive(Debug, Copy, Clone, PartialEq)]
@@ -103,6 +110,7 @@ mod tests {
                         create_playlist_called_with: None,
                         get_playlist_id_called_with: None,
                         add_tracks_to_playlist_called_with: None,
+                        get_track_ids_in_playlist_called_with: None,
                     }
                 ),
                 get_playlist_id_returns: get_playlist_id_returns,
@@ -127,6 +135,12 @@ mod tests {
             self.call_history.borrow_mut().add_tracks_to_playlist_called_with = Some(playlist_id.to_owned());
             Ok(())
         }
+
+        #[allow(unused_variables)]
+        fn get_track_ids_in_playlist(&self, playlist_id: &str) -> Result<Vec<String>, FakeError> {
+            self.call_history.borrow_mut().get_track_ids_in_playlist_called_with = Some(playlist_id.to_owned());
+            Ok(Vec::new())
+        }
     }
 
     #[test]
@@ -148,6 +162,7 @@ mod tests {
         assert_eq!(None, api.call_history.borrow().create_playlist_called_with);
         // Ensure irrelevant function is not called
         assert_eq!(None, api.call_history.borrow().add_tracks_to_playlist_called_with);
+        assert_eq!(None, api.call_history.borrow().get_track_ids_in_playlist_called_with);
     }
 
     #[test]
@@ -171,6 +186,7 @@ mod tests {
         assert_eq!(Some(playlist_name.to_owned()), api.call_history.borrow().create_playlist_called_with);
         // Ensure irrelevant function is not called
         assert_eq!(None, api.call_history.borrow().add_tracks_to_playlist_called_with);
+        assert_eq!(None, api.call_history.borrow().get_track_ids_in_playlist_called_with);
     }
 
     #[test]
@@ -197,6 +213,7 @@ mod tests {
         assert_eq!(None, api.call_history.borrow().create_playlist_called_with);
         // Ensure irrelevant function is not called
         assert_eq!(None, api.call_history.borrow().add_tracks_to_playlist_called_with);
+        assert_eq!(None, api.call_history.borrow().get_track_ids_in_playlist_called_with);
     }
 
     #[test]
@@ -221,5 +238,6 @@ mod tests {
         assert_eq!(Some(playlist_name.to_owned()), api.call_history.borrow().create_playlist_called_with);
         // Ensure irrelevant function is not called
         assert_eq!(None, api.call_history.borrow().add_tracks_to_playlist_called_with);
+        assert_eq!(None, api.call_history.borrow().get_track_ids_in_playlist_called_with);
     }
 }
