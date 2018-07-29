@@ -156,20 +156,26 @@ mod tests {
         }
     }
 
-    #[test]
-    fn add_songs_to_playlist_success() {
-        // Given
-        let playlist_name = "test_playlist_name1";
+    /// Used for declaring the inputs for each test
+    fn test_setup() -> (String, [String; 3], Vec<Song>) {
+        let playlist_name = "test_playlist_name1".to_string();
         let expected_tracks = ["3ndjkfd9".to_string(), "vvcs33".to_string(), "asqww_nf".to_string()];
-        let api = MockPlaylistAPI::new(Ok(()), Ok(Vec::new()));
         // Create some songs to add
         let mut songs = Vec::new();
         songs.push(Song{music:"BLA".to_string(), song_id:expected_tracks[0].to_owned()});
         songs.push(Song{music:"test song".to_string(), song_id:expected_tracks[1].to_owned()});
         songs.push(Song{music:"another 1".to_string(), song_id:expected_tracks[2].to_owned()});
+        (playlist_name, expected_tracks, songs)
+    }
+
+    #[test]
+    fn add_songs_to_playlist_success() {
+        // Given
+        let (playlist_name, expected_tracks, songs) = test_setup();
+        let api = MockPlaylistAPI::new(Ok(()), Ok(Vec::new()));
         // When
         // Ensure it doesn't fail using unwrap
-        add_songs_to_playlist(&api, playlist_name, songs).unwrap();
+        add_songs_to_playlist(&api, &playlist_name, songs).unwrap();
         // Then
         let expected = Some((playlist_name.to_string(), expected_tracks.to_vec()));
         let expected_track_id_call = Some(playlist_name.to_string());
@@ -186,16 +192,11 @@ mod tests {
     #[test]
     fn add_songs_to_playlist_error() {
         // Given
-        let playlist_name = "test_playlist_name1";
-        let expected_tracks = ["3ndjkfd9".to_string(), "vvcs33".to_string(), "asqww_nf".to_string()];
+        let (playlist_name, expected_tracks, songs) = test_setup();
         let error = FakeError{};
         let api = MockPlaylistAPI::new(Err(error), Ok(Vec::new()));
-        let mut songs = Vec::new();
-        songs.push(Song{music:"BLA".to_string(), song_id:expected_tracks[0].to_owned()});
-        songs.push(Song{music:"test song".to_string(), song_id:expected_tracks[1].to_owned()});
-        songs.push(Song{music:"another 1".to_string(), song_id:expected_tracks[2].to_owned()});
         // When
-        let result = add_songs_to_playlist(&api, playlist_name, songs);
+        let result = add_songs_to_playlist(&api, &playlist_name, songs);
         // Then
         match result {
             // Ensure that we receive an error
@@ -218,22 +219,15 @@ mod tests {
     #[test]
     fn add_songs_to_playlist_filters_duplicates() {
         // Given
-        let playlist_name = "test_playlist_name1";
-        // The tracks to be added
-        let adding_tracks = ["3ndjkfd9".to_string(), "vvcs33".to_string(), "asqww_nf".to_string()];
+        let (playlist_name, adding_tracks, songs) = test_setup();
         // Two of the tracks are duplicates
         let existing_tracks = vec![adding_tracks[0].clone(), adding_tracks[2].clone()];
         // The expected result should be the single non-duplicate
         let expected_tracks = [adding_tracks[1].clone()];
         let api = MockPlaylistAPI::new(Ok(()), Ok(existing_tracks));
-        // Create some songs to add
-        let mut songs = Vec::new();
-        songs.push(Song{music:"BLA".to_string(), song_id:adding_tracks[0].to_owned()});
-        songs.push(Song{music:"test song".to_string(), song_id:adding_tracks[1].to_owned()});
-        songs.push(Song{music:"another 1".to_string(), song_id:adding_tracks[2].to_owned()});
         // When
         // Ensure it doesn't fail using unwrap
-        add_songs_to_playlist(&api, playlist_name, songs).unwrap();
+        add_songs_to_playlist(&api, &playlist_name, songs).unwrap();
         // Then
         let expected = Some((playlist_name.to_string(), expected_tracks.to_vec()));
         let expected_track_id_call = Some(playlist_name.to_string());
@@ -250,17 +244,12 @@ mod tests {
     #[test]
     fn add_songs_to_playlist_get_track_ids_error() {
         // Given
-        let playlist_name = "test_playlist_name1";
-        let expected_tracks = ["3ndjkfd9".to_string(), "vvcs33".to_string(), "asqww_nf".to_string()];
+        let (playlist_name, _, songs) = test_setup();
         let error = FakeError{};
         // Getting the track IDs will error
         let api = MockPlaylistAPI::new(Ok(()), Err(error));
-        let mut songs = Vec::new();
-        songs.push(Song{music:"BLA".to_string(), song_id:expected_tracks[0].to_owned()});
-        songs.push(Song{music:"test song".to_string(), song_id:expected_tracks[1].to_owned()});
-        songs.push(Song{music:"another 1".to_string(), song_id:expected_tracks[2].to_owned()});
         // When
-        let result = add_songs_to_playlist(&api, playlist_name, songs);
+        let result = add_songs_to_playlist(&api, &playlist_name, songs);
         // Then
         match result {
             // Ensure that we receive an error

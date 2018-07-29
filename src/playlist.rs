@@ -149,22 +149,28 @@ mod tests {
         }
     }
 
+    /// Used for declaring the inputs for each test
+    fn test_setup() -> (String, String) {
+        let playlist_name = "test_playlist_name1";
+        let expected_playlist_id = "id_123";
+        (playlist_name.to_string(), expected_playlist_id.to_string())
+    }
+
     #[test]
     fn get_playlist_id_if_playlist_exists() {
         // Given
-        let playlist_name = "test_playlist_name1";
-        let expected_playlist_id = "id_123";
+        let (playlist_name, expected_playlist_id) = test_setup();
         let api = MockPlaylistAPI::new(
             Ok(expected_playlist_id.to_owned()),
             Ok(expected_playlist_id.to_owned())
         );
         // When
-        let result = get_playlist_id_create_if_needed(&api, playlist_name).unwrap();
+        let result = get_playlist_id_create_if_needed(&api, &playlist_name).unwrap();
         // Then
         let calls = api.call_history.borrow();
         assert_eq!(expected_playlist_id, result);
         // Ensure that API was called correctly
-        assert_eq!(Some(playlist_name.to_owned()), api.call_history.borrow().get_playlist_id_called_with);
+        assert_eq!(Some(playlist_name.to_owned()), calls.get_playlist_id_called_with);
         // Ensure that the create call is not made
         assert_eq!(None, calls.create_playlist_called_with);
         // Ensure irrelevant function is not called
@@ -175,8 +181,7 @@ mod tests {
     #[test]
     fn get_playlist_id_create_if_needed_creates_playlist() {
         // Given
-        let playlist_name = "test_playlist_name1";
-        let expected_playlist_id = "id_123";
+        let (playlist_name, expected_playlist_id) = test_setup();
         // The get call will fail with the playlist not being found
         let get_error = PlaylistError::PlaylistNotFound(PlaylistNotFound{});
         let api = MockPlaylistAPI::new(
@@ -185,7 +190,7 @@ mod tests {
             Ok(expected_playlist_id.to_owned()),
         );
         // When
-        let result = get_playlist_id_create_if_needed(&api, playlist_name).unwrap();
+        let result = get_playlist_id_create_if_needed(&api, &playlist_name).unwrap();
         // Then
         let calls = api.call_history.borrow();
         assert_eq!(expected_playlist_id, result);
@@ -200,8 +205,7 @@ mod tests {
     #[test]
     fn get_playlist_id_handles_api_error() {
         // Given
-        let playlist_name = "test_playlist_name1";
-        let expected_playlist_id = "id_123";
+        let (playlist_name, expected_playlist_id) = test_setup();
         // The get call will fail with an API error
         let get_error = PlaylistError::APIError(FakeError{});
         let api = MockPlaylistAPI::new(
@@ -209,7 +213,7 @@ mod tests {
             Ok(expected_playlist_id.to_owned())
         );
         // When
-        let result = get_playlist_id_create_if_needed(&api, playlist_name);
+        let result = get_playlist_id_create_if_needed(&api, &playlist_name);
         // Then
         match result {
             // Fail if it doesn't send back an error
@@ -228,7 +232,7 @@ mod tests {
     #[test]
     fn get_playlist_id_fails_on_create() {
         // Given
-        let playlist_name = "test_playlist_name1";
+        let (playlist_name, _) = test_setup();
         let create_error = FakeError{};
         let api = MockPlaylistAPI::new(
             // The get call will fail with the playlist not found
@@ -236,7 +240,7 @@ mod tests {
             Err(create_error),
         );
         // When
-        let result = get_playlist_id_create_if_needed(&api, playlist_name);
+        let result = get_playlist_id_create_if_needed(&api, &playlist_name);
         // Then
         match result {
             // Ensure that we receive an error
