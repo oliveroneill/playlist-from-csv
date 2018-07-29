@@ -2,6 +2,7 @@ extern crate csv;
 
 use playlist::{PlaylistAPI};
 
+use std::fmt;
 use std::error::Error;
 use std::fs::File;
 
@@ -40,6 +41,31 @@ fn get_track_id_from_song(song: &Song) -> String {
     song.song_id.to_owned()
 }
 
+/// Playlist error enum for different errors when adding tracks to playlist
+#[derive(Debug, Copy, Clone, PartialEq)]
+pub enum PlaylistAddError<E> {
+    /// Generic playlist error from API
+    APIError(E),
+    /// The error when the playlist cannot be found
+    NoNewTracks(NoNewTracks),
+}
+
+/// An error when there are no new tracks to add to the playlist
+#[derive(Debug, Copy, Clone, PartialEq)]
+pub struct NoNewTracks {}
+
+impl Error for NoNewTracks {
+    fn description(&self) -> &str {
+        "No tracks to add to playlist"
+    }
+}
+
+impl fmt::Display for NoNewTracks {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}", self.description())
+    }
+}
+
 /// Add songs to a playlist using the input API.
 ///
 /// # Arguments
@@ -50,16 +76,24 @@ fn get_track_id_from_song(song: &Song) -> String {
 /// * `songs` - A vec of the songs
 pub fn add_songs_to_playlist<E>(playlist_api: &PlaylistAPI<E>,
                                 playlist_id: &str,
-                                songs: Vec<Song>) -> Result<(), E> {
+                                songs: Vec<Song>) -> Result<(), PlaylistAddError<E>> {
     // Map the songs to IDs
     let track_ids: Vec<String> = songs.iter().map(get_track_id_from_song).collect();
-    let mut filtered = filter_duplicates(playlist_api, playlist_id, track_ids)?;
+    let mut filtered = filter_duplicates(
+        playlist_api, playlist_id, track_ids
+    ).map_err(PlaylistAddError::APIError)?;
     // Sort so that dedup removes all duplicates
     filtered.sort();
     // Remove all duplicates
     filtered.dedup();
+    // If there's no tracks left then send back a message to indicate that
+    if filtered.is_empty() {
+        return Err(PlaylistAddError::NoNewTracks(NoNewTracks {}));
+    }
     // Add the IDs to the playlist
-    playlist_api.add_tracks_to_playlist(playlist_id, &filtered[..])?;
+    playlist_api.add_tracks_to_playlist(
+        playlist_id, &filtered[..]
+    ).map_err(PlaylistAddError::APIError)?;
     Ok(())
 }
 
@@ -208,7 +242,7 @@ mod tests {
             // Ensure that we receive an error
             Ok(_) => assert!(false),
             // Make sure we receive the error
-            Err(err) => assert_eq!(error, err),
+            Err(err) => assert_eq!(PlaylistAddError::APIError(error), err),
         };
         // Check the call history
         let calls = api.call_history.borrow();
@@ -261,7 +295,7 @@ mod tests {
             // Ensure that we receive an error
             Ok(_) => assert!(false),
             // Make sure we receive the error
-            Err(err) => assert_eq!(error, err),
+            Err(err) => assert_eq!(PlaylistAddError::APIError(error), err),
         };
         // Check the call history
         let calls = api.call_history.borrow();
@@ -294,6 +328,37 @@ mod tests {
         // Ensure that API was called correctly
         assert_eq!(expected, calls.add_tracks_to_playlist_called_with);
         assert_eq!(expected_track_id_call, calls.get_track_ids_in_playlist_called_with);
+        // Ensure irrelevant function is not called
+        assert_eq!(None, calls.create_playlist_called_with);
+        assert_eq!(None, calls.get_playlist_id_called_with);
+    }
+
+    #[test]
+    fn add_songs_to_playlist_sends_error_when_no_new_tracks() {
+        // Given
+        let (playlist_name, adding_tracks, songs) = test_setup();
+        // Two of the tracks are duplicates
+        let existing_tracks = vec![
+            adding_tracks[0].clone(),
+            adding_tracks[1].clone(),
+            adding_tracks[2].clone()
+        ];
+        let api = MockPlaylistAPI::new(Ok(()), Ok(existing_tracks));
+        // When
+        let result = add_songs_to_playlist(&api, &playlist_name, songs);
+        match result {
+            // Ensure that we receive an error
+            Ok(_) => assert!(false),
+            // Make sure we receive the error
+            Err(err) => assert_eq!(PlaylistAddError::NoNewTracks(NoNewTracks{}), err),
+        };
+        // Then
+        let expected_track_id_call = Some(playlist_name.to_string());
+        // Check the call history
+        let calls = api.call_history.borrow();
+        // Ensure that API was called correctly
+        assert_eq!(expected_track_id_call, calls.get_track_ids_in_playlist_called_with);
+        assert_eq!(None, calls.add_tracks_to_playlist_called_with);
         // Ensure irrelevant function is not called
         assert_eq!(None, calls.create_playlist_called_with);
         assert_eq!(None, calls.get_playlist_id_called_with);
