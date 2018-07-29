@@ -87,6 +87,9 @@ impl PlaylistAPI<failure::Error> for SpotifyAPI {
     fn add_tracks_to_playlist(&self,
                               playlist_id: &str,
                               track_ids: &[String]) -> Result<(), failure::Error> {
+        if track_ids.is_empty() {
+            return Ok(());
+        }
         self.spotify.user_playlist_add_tracks(
             &self.username,
             playlist_id,
