@@ -1,8 +1,8 @@
 #[macro_use]
 extern crate serde_derive;
 
-mod dynamodb;
-use dynamodb::{parse_csv_file,add_songs_to_playlist};
+mod csv_to_playlist;
+use csv_to_playlist::{parse_csv_file,add_songs_to_playlist};
 
 mod playlist;
 use playlist::{get_playlist_id_create_if_needed};
