@@ -2,7 +2,7 @@
 extern crate serde_derive;
 
 mod csv_to_playlist;
-use csv_to_playlist::{parse_csv_file,add_songs_to_playlist};
+use csv_to_playlist::{parse_csv_file,add_songs_to_playlist,PlaylistAddError};
 
 mod playlist;
 use playlist::{get_playlist_id_create_if_needed};
@@ -31,8 +31,17 @@ fn update_playlist_from_csv(client_id: &str, client_secret: &str,
     // Get playlist ID from playlist name
     let playlist_id = get_playlist_id_create_if_needed(&spotify, &playlist_name).unwrap();
     let songs = parse_csv_file(csv_filename).unwrap();
-    add_songs_to_playlist(&spotify, &playlist_id, songs).unwrap();
-    println!("Successfully added songs!");
+    match add_songs_to_playlist(&spotify, &playlist_id, songs) {
+        Ok(()) => println!("Successfully added songs!"),
+        Err(error) => {
+            match error {
+                PlaylistAddError::NoNewTracks(_) => {
+                    println!("No new tracks to add.");
+                },
+                PlaylistAddError::APIError(e) => panic!(e),
+            }
+        }
+    }
 }
 
 fn main() {
