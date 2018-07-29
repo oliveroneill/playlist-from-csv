@@ -1,10 +1,10 @@
-extern crate csv;
-
-use playlist::{PlaylistAPI};
-
 use std::fmt;
 use std::error::Error;
 use std::fs::File;
+
+use playlist::{PlaylistAPI};
+
+extern crate csv;
 
 /// A struct containing relevant spotify information for playlist tracks.
 /// This is specifically used for a DynamoDB export to CSV
