@@ -89,8 +89,8 @@ impl SpotifyAPI {
     /// * `playlist_id` - A string slice that holds the playlist name
     /// * `offset` - How far into the playlist we want to start querying from
     /// * `track_ids` - The track IDs we've retrieved so far, as this is called
-    ///                 recursively. This should be an empty vec when first
-    ///                 called
+    /// recursively. This should be an empty vec when first
+    /// called
     fn get_track_ids_in_playlist_with_offset(&self,
                                              playlist_id: &str,
                                              offset: u32,

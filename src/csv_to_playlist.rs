@@ -72,7 +72,7 @@ impl fmt::Display for NoNewTracks {
 ///
 /// * `playlist_api` - The instance where the tracks should be added
 /// * `playlist_id` - The playlist ID to be added to. This is the ID and *not*
-///                   the name.
+/// the name.
 /// * `songs` - A vec of the songs
 pub fn add_songs_to_playlist<E>(playlist_api: &PlaylistAPI<E>,
                                 playlist_id: &str,
@@ -103,7 +103,7 @@ pub fn add_songs_to_playlist<E>(playlist_api: &PlaylistAPI<E>,
 ///
 /// * `playlist_api` - The instance where the tracks should be added
 /// * `playlist_id` - The playlist ID to be added to. This is the ID and *not*
-///                   the name.
+/// the name.
 /// * `track_ids` - A vec of IDs for each song
 pub fn filter_duplicates<E>(playlist_api: &PlaylistAPI<E>,
                             playlist_id: &str,
