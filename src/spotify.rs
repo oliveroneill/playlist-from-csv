@@ -60,7 +60,7 @@ impl SpotifyAPI {
 
 impl SpotifyAPI {
     /// Get playlist ID by searching through pages of playlists.
-    /// This will be recursively called incrementing offset.
+    /// This will be recursively called incrementing offset for each page.
     fn get_playlist_id_with_offset(&self,
                                    playlist_name: &str,
                                    offset: u32) -> Result<String, PlaylistError<failure::Error>> {
@@ -72,12 +72,52 @@ impl SpotifyAPI {
                 return Ok(p.id.to_owned());
             };
         };
+        // If there are less results than the limit then we've reached the
+        // last page
         if playlist_page.total < playlist_page.limit {
             // Send error if we don't find the playlist
             return Err(PlaylistError::PlaylistNotFound(PlaylistNotFound{}));
         }
         // Recurse over the next page
         self.get_playlist_id_with_offset(playlist_name, offset + playlist_page.total)
+    }
+
+    /// Get track IDs for all tracks in playlist.
+    /// This will be recursively called incrementing offset for each page.
+    /// # Arguments
+    ///
+    /// * `playlist_id` - A string slice that holds the playlist name
+    /// * `offset` - How far into the playlist we want to start querying from
+    /// * `track_ids` - The track IDs we've retrieved so far, as this is called
+    ///                 recursively. This should be an empty vec when first
+    ///                 called
+    fn get_track_ids_in_playlist_with_offset(&self,
+                                             playlist_id: &str,
+                                             offset: u32,
+                                             track_ids: &mut Vec<String>) -> Result<Vec<String>, failure::Error> {
+        let results = self.spotify.user_playlist_tracks(
+            &self.username,
+            playlist_id,
+            None,
+            None,
+            Some(offset),
+            None
+        )?;
+        // Get the IDs for the new results
+        let mut new_ids = get_track_ids(results.items);
+        // Append it to the current set
+        track_ids.append(&mut new_ids);
+        // If there are less results than the limit then we've reached the
+        // last page
+        if results.total < results.limit {
+            return Ok(track_ids.to_vec());
+        }
+        // Recurse over the next page
+        self.get_track_ids_in_playlist_with_offset(
+            playlist_id,
+            offset + results.total,
+            track_ids
+        )
     }
 }
 
@@ -115,15 +155,11 @@ impl PlaylistAPI<failure::Error> for SpotifyAPI {
 
     fn get_track_ids_in_playlist(&self,
                                  playlist_id: &str) -> Result<Vec<String>, failure::Error> {
-        let results = self.spotify.user_playlist_tracks(
-            &self.username,
+        self.get_track_ids_in_playlist_with_offset(
             playlist_id,
-            None,
-            None,
-            None,
-            None
-        )?;
-        Ok(get_track_ids(results.items))
+            0,
+            &mut Vec::new()
+        )
     }
 }
 
