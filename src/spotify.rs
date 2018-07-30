@@ -58,19 +58,33 @@ impl SpotifyAPI {
     }
 }
 
-impl PlaylistAPI<failure::Error> for SpotifyAPI {
-    fn get_playlist_id(&self,
-                       playlist_name: &str) -> Result<String, PlaylistError<failure::Error>> {
-        let result = self.spotify.current_user_playlists(None, None);
+impl SpotifyAPI {
+    /// Get playlist ID by searching through pages of playlists.
+    /// This will be recursively called incrementing offset.
+    fn get_playlist_id_with_offset(&self,
+                                   playlist_name: &str,
+                                   offset: u32) -> Result<String, PlaylistError<failure::Error>> {
+        let result = self.spotify.current_user_playlists(None, Some(offset));
         let playlist_page = result.map_err(PlaylistError::APIError)?;
         // Find the first playlist with the matching name
         for p in playlist_page.items {
             if p.name == playlist_name {
-                return Ok(p.id);
+                return Ok(p.id.to_owned());
             };
         };
-        // Send error if we don't find the playlist
-        Err(PlaylistError::PlaylistNotFound(PlaylistNotFound{}))
+        if playlist_page.total < playlist_page.limit {
+            // Send error if we don't find the playlist
+            return Err(PlaylistError::PlaylistNotFound(PlaylistNotFound{}));
+        }
+        // Recurse over the next page
+        self.get_playlist_id_with_offset(playlist_name, offset + playlist_page.total)
+    }
+}
+
+impl PlaylistAPI<failure::Error> for SpotifyAPI {
+    fn get_playlist_id(&self,
+                       playlist_name: &str) -> Result<String, PlaylistError<failure::Error>> {
+        self.get_playlist_id_with_offset(playlist_name, 0)
     }
 
     fn create_playlist(&self,
