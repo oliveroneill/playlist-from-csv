@@ -78,14 +78,17 @@ pub fn add_songs_to_playlist<E>(playlist_api: &PlaylistAPI<E>,
                                 playlist_id: &str,
                                 songs: Vec<Song>) -> Result<(), PlaylistAddError<E>> {
     // Map the songs to IDs
-    let track_ids: Vec<String> = songs.iter().map(get_track_id_from_song).collect();
-    let mut filtered = filter_duplicates(
+    let mut track_ids: Vec<String> = songs
+        .iter()
+        .map(get_track_id_from_song)
+        .collect();
+    // Sort so that dedup removes all duplicates
+    track_ids.sort();
+    // Remove all duplicates
+    track_ids.dedup();
+    let filtered = filter_duplicates(
         playlist_api, playlist_id, track_ids
     ).map_err(PlaylistAddError::APIError)?;
-    // Sort so that dedup removes all duplicates
-    filtered.sort();
-    // Remove all duplicates
-    filtered.dedup();
     // If there's no tracks left then send back a message to indicate that
     if filtered.is_empty() {
         return Err(PlaylistAddError::NoNewTracks(NoNewTracks {}));
