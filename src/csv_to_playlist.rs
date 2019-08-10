@@ -44,6 +44,7 @@ fn get_track_id_from_song(song: &Song) -> Option<String> {
     // I'm willing to make the assumption that "true" is not
     // a valid Spotify track ID
     if song.song_id == "true" {
+        println!("Missing track ID for: {}", song.music);
         return None
     }
     Some(song.song_id.to_owned())
