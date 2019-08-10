@@ -37,8 +37,16 @@ pub fn parse_csv_file(filename: &str) -> Result<Vec<Song>, Box<Error>> {
 }
 
 /// Used to get the ID out of the Song struct
-fn get_track_id_from_song(song: &Song) -> String {
-    song.song_id.to_owned()
+fn get_track_id_from_song(song: &Song) -> Option<String> {
+    // DynamoDB will set the track ID to true if it's null
+    // since the type is NULL instead of String. This is
+    // weird but it's fine. "true" just means there's no ID
+    // I'm willing to make the assumption that "true" is not
+    // a valid Spotify track ID
+    if song.song_id == "true" {
+        return None
+    }
+    Some(song.song_id.to_owned())
 }
 
 /// Playlist error enum for different errors when adding tracks to playlist
@@ -81,6 +89,8 @@ pub fn add_songs_to_playlist<E>(playlist_api: &PlaylistAPI<E>,
     let mut track_ids: Vec<String> = songs
         .iter()
         .map(get_track_id_from_song)
+        .filter(|id| id.is_some())
+        .map(|id| id.unwrap())
         .collect();
     // Sort so that dedup removes all duplicates
     track_ids.sort();
@@ -202,11 +212,17 @@ mod tests {
         // These must be in alphabetical order to make the tests simpler.
         // This is because add_songs_to_playlist performs a sort that changes
         // the order that tracks are added
-        let expected_tracks = ["3ndjkfd9".to_string(), "asqww_nf".to_string(), "vvcs33".to_string()];
+        let expected_tracks = [
+            "3ndjkfd9".to_string(),
+            "asqww_nf".to_string(),
+            "vvcs33".to_string()
+        ];
         // Create some songs to add
         let mut songs = Vec::new();
         songs.push(Song{music:"BLA".to_string(), song_id:expected_tracks[0].to_owned()});
         songs.push(Song{music:"test song".to_string(), song_id:expected_tracks[1].to_owned()});
+        // This will be stripped out since DynamoDB uses "true" to indicate NULL
+        songs.push(Song{music:"djgfdj".to_string(), song_id:"true".to_owned()});
         songs.push(Song{music:"another 1".to_string(), song_id:expected_tracks[2].to_owned()});
         (playlist_name, expected_tracks, songs)
     }
